@@ -17,13 +17,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # Redis
+    redis_url: str = "redis://localhost:6379"
+
     # Google OAuth
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+    google_token_encryption_key: str
 
     # AI
     openrouter_api_key: str
+
+    frontend_url: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(
         env_file=".env",
