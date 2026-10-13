@@ -1,5 +1,4 @@
 from functools import lru_cache
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,9 +6,11 @@ class Settings(BaseSettings):
     # App
     app_name: str = "Calendar Agent"
     debug: bool = False
+    log_level: str = "INFO"
 
     # Database
     database_url: str
+    langgraph_db_url: str = None
 
     # Authentication
     secret_key: str
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
 
     # AI
     openrouter_api_key: str
+    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
     frontend_url: str = "http://localhost:3000"
 
@@ -45,3 +47,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+LOG_LEVEL = settings.log_level
