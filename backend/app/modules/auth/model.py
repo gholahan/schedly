@@ -19,6 +19,7 @@ class User(SQLModel, table=True):
     name: str = Field(sa_column=Column(Text, nullable=False))
     email: str = Field(sa_column=Column(Text, nullable=False))
     password_hash: str = Field(sa_column=Column(Text, nullable=False))
+    avatar_url: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
 
     plan: str = Field(default="free", sa_column=Column(Text, nullable=False, server_default="free"))
     credits: int = Field(default=0)
