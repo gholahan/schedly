@@ -2,11 +2,13 @@ from fastapi import APIRouter
 from app.modules.agent.routes import router as agent_router
 from app.modules.auth.router import router as auth_router
 from app.modules.google_calendar.router import router as google_calendar_router
+from app.modules.preferences.routes import router as preferences_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(google_calendar_router)
 api_router.include_router(agent_router)
+api_router.include_router(preferences_router)
 
 
 @api_router.get("/")

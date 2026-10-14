@@ -150,7 +150,12 @@ async def get_events(
         max_results,
     )
     try:
-        client, _, _ = await get_google_client_from_config(config)
+        client, user_id, session = await get_google_client_from_config(config)
+
+        # Get user preferences for calendar filtering
+        prefs = await get_user_preferences(user_id, session)
+        selected_calendar_ids = prefs.selected_calendar_ids if prefs else None
+
         if calendar_id:
             events = await cal_service.fetch_events(
                 client=client,
@@ -167,6 +172,7 @@ async def get_events(
                 end_time=end_time,
                 query=query,
                 max_results_per_calendar=max_results,
+                selected_calendar_ids=selected_calendar_ids,
             )
         logger.info(
             " [TOOL:get_events] Retrieved %d event(s) from calendar '%s'",
@@ -249,15 +255,22 @@ async def check_free(
         end_time,
     )
     try:
-        client, _, _ = await get_google_client_from_config(config)
+        client, user_id, session = await get_google_client_from_config(config)
 
-        # Retrieve all calendars the user can see to check availability across all
+        # Get user preferences for calendar filtering
+        prefs = await get_user_preferences(user_id, session)
+
         cal_list = await cal_service.list_user_calendars(client)
-        calendar_ids = [c["id"] for c in cal_list] or ["primary"]
+
+        if prefs and prefs.selected_calendar_ids:
+            calendar_ids = [c["id"] for c in cal_list if c["id"] in prefs.selected_calendar_ids]
+        else:
+            calendar_ids = [c["id"] for c in cal_list] or ["primary"]
+
         logger.info(
-            "[TOOL:check_free] Checking availability across %d calendar(s): %s",
+            "[TOOL:check_free] Checking availability across %d calendar(s)%s",
             len(calendar_ids),
-            calendar_ids,
+            f" [filtered from {len(cal_list)} total]" if prefs and prefs.selected_calendar_ids else "",
         )
 
         result = await cal_service.query_freebusy(
@@ -353,10 +366,18 @@ async def find_slots(
     try:
         client, user_id, session = await get_google_client_from_config(config)
 
-        cal_list = await cal_service.list_user_calendars(client)
-        calendar_ids = [c["id"] for c in cal_list] or ["primary"]
-
+        # Get user preferences
         prefs = await get_user_preferences(user_id, session)
+
+        # Get all calendars
+        cal_list = await cal_service.list_user_calendars(client)
+
+        # Apply calendar filter from preferences
+        # Semantic: empty or None = "all accessible calendars"
+        if prefs and prefs.selected_calendar_ids:
+            calendar_ids = [c["id"] for c in cal_list if c["id"] in prefs.selected_calendar_ids]
+        else:
+            calendar_ids = [c["id"] for c in cal_list] or ["primary"]
 
         working_hours_start = prefs.working_hours_start if prefs else time(9, 0)
         working_hours_end = prefs.working_hours_end if prefs else time(17, 0)
@@ -366,13 +387,15 @@ async def find_slots(
         user_timezone = prefs.timezone if prefs else "UTC"
 
         logger.info(
-            "[TOOL:find_slots] User preferences applied: tz=%s, working_hours=%s-%s, working_days=%s, buffer=%dm, notice=%dm",
+            "[TOOL:find_slots] User preferences applied: tz=%s, working_hours=%s-%s, working_days=%s, buffer=%dm, notice=%dm, %d calendar(s)%s",
             user_timezone,
             working_hours_start,
             working_hours_end,
             working_days,
             buffer_minutes,
             minimum_notice_minutes,
+            len(calendar_ids),
+            f" [filtered from {len(cal_list)} total]" if prefs and prefs.selected_calendar_ids else "",
         )
 
         slots = await cal_service.find_available_slots(

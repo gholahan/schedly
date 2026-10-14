@@ -58,12 +58,11 @@ class UserPreferences(SQLModel, table=True):
         ge=1,
         le=365,
     )
+    selected_calendar_ids: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
 
-    # Optional preferences
-    preferred_meeting_start: time | None = None
-    preferred_meeting_end: time | None = None
-    allow_weekend_scheduling: bool = False
-    auto_decline_conflicts: bool = False
 
     # Metadata
     created_at: datetime = Field(
