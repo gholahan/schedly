@@ -116,6 +116,7 @@ async def fetch_events_all_calendars(
     end_time: datetime,
     query: str | None = None,
     max_results_per_calendar: int = 20,
+    selected_calendar_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch events across all accessible calendars.
 
@@ -125,25 +126,38 @@ async def fetch_events_all_calendars(
 
     Prioritizes user-owned calendars over holiday/shared calendars for better
     performance until user preferences provide explicit filtering.
+
+    Args:
+        selected_calendar_ids: Calendar IDs to query. Empty/None = all accessible calendars.
     """
     calendars = await list_user_calendars(client)
 
+    # Apply calendar filter from preferences
+    # Semantic: empty or None = "all accessible calendars"
+    if selected_calendar_ids:
+        # Non-empty: filter to selected calendars only
+        filtered_calendars = [c for c in calendars if c["id"] in selected_calendar_ids]
+    else:
+        # Empty or None: use all accessible calendars
+        filtered_calendars = calendars
+
     # Prioritize user calendars: primary and owned calendars first,
     # then classroom/group calendars, holiday calendars last
-    primary_cals = [c for c in calendars if c.get("is_primary")]
-    user_cals = [c for c in calendars if not c.get("is_primary") and not c["id"].endswith("#holiday@group.v.calendar.google.com")]
-    holiday_cals = [c for c in calendars if c["id"].endswith("#holiday@group.v.calendar.google.com")]
+    primary_cals = [c for c in filtered_calendars if c.get("is_primary")]
+    user_cals = [c for c in filtered_calendars if not c.get("is_primary") and not c["id"].endswith("#holiday@group.v.calendar.google.com")]
+    holiday_cals = [c for c in filtered_calendars if c["id"].endswith("#holiday@group.v.calendar.google.com")]
 
     # Query in priority order
     ordered_calendars = primary_cals + user_cals + holiday_cals
     calendar_ids = [c["id"] for c in ordered_calendars] or ["primary"]
 
     logger.info(
-        "Fetching events across %d calendar(s) (primary: %d, user: %d, holiday: %d)",
+        "Fetching events across %d calendar(s) (primary: %d, user: %d, holiday: %d)%s",
         len(calendar_ids),
         len(primary_cals),
         len(user_cals),
         len(holiday_cals),
+        f" [filtered from {len(calendars)} total]" if selected_calendar_ids else "",
     )
 
     all_events: list[dict[str, Any]] = []
