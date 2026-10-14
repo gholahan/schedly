@@ -104,30 +104,7 @@ class AIMessage(SQLModel, table=True):
         sa_column=Column(Text, nullable=True),
     )
 
-    # Tool execution support
-    name: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    tool_call_id: str | None = Field(
-        default=None,
-        max_length=255,
-        index=True,
-    )
-
     tool_calls: list[dict] | None = Field(
-        default=None,
-        sa_column=Column(JSON, nullable=True),
-    )
-
-    # Optional provider/model metadata
-    additional_kwargs: dict | None = Field(
-        default=None,
-        sa_column=Column(JSON, nullable=True),
-    )
-
-    response_metadata: dict | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),
     )
