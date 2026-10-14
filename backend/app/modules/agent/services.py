@@ -341,6 +341,18 @@ async def process_chat_message(
         )
         last_message = result["messages"][-1]
         ai_content = str(last_message.content)
+
+        # Extract tool calls from the assistant message
+        tool_calls = None
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            tool_calls = [
+                {
+                    "name": tc.get("name"),
+                    "args": tc.get("args"),
+                    "id": tc.get("id"),
+                }
+                for tc in last_message.tool_calls
+            ]
     except Exception as exc:
         logger.exception("LangGraph invocation failed for user %s: %s", user_id, exc)
         raise
@@ -349,6 +361,7 @@ async def process_chat_message(
         conversation_id=conversation.id,
         content=ai_content,
         session=session,
+        tool_calls=tool_calls,
     )
     await session.commit()
 
