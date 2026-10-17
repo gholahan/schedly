@@ -43,6 +43,7 @@ class SignupResponse(BaseModel):
 
 
 class LoginResponse(BaseModel):
+    user: UserResponse
     access_token: str
     token_type: str = "bearer"
 
