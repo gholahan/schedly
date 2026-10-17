@@ -37,9 +37,14 @@ async def signup(payload: SignupRequest, response: Response, session: SessionDep
 
     await save_refresh_token(user.id, refresh_token, session)
 
+    # Set both tokens as httpOnly cookies
+    response.set_cookie(
+        key="access_token", value=access_token,
+        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+    )
     response.set_cookie(
         key="refresh_token", value=refresh_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,
+        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,  # 30 days
     )
 
     return SignupResponse(user=UserResponse.model_validate(user), access_token=access_token)
@@ -62,16 +67,21 @@ async def login(payload: LoginRequest, response: Response, session: SessionDep):
 
     await save_refresh_token(user.id, refresh_token, session)
 
+    # Set both tokens as httpOnly cookies
+    response.set_cookie(
+        key="access_token", value=access_token,
+        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+    )
     response.set_cookie(
         key="refresh_token", value=refresh_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,
+        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,  # 30 days
     )
 
-    return LoginResponse(access_token=access_token)
+    return LoginResponse(user=UserResponse.model_validate(user), access_token=access_token)
 
 
 @router.post("/refresh", response_model=RefreshResponse)
-async def refresh(request: Request, session: SessionDep):
+async def refresh(request: Request, response: Response, session: SessionDep):
     token = request.cookies.get("refresh_token")
     if not token:
         raise HTTPException(status_code=401, detail="No refresh token")
@@ -89,7 +99,16 @@ async def refresh(request: Request, session: SessionDep):
     if not await verify_refresh_token(user_id, token, session):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
 
-    return RefreshResponse(access_token=create_access_token({"sub": user_id}))
+    # Generate new access token
+    new_access_token = create_access_token({"sub": user_id})
+
+    # Set new access_token as httpOnly cookie
+    response.set_cookie(
+        key="access_token", value=new_access_token,
+        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+    )
+
+    return RefreshResponse(access_token=new_access_token)
 
 
 @router.post("/logout", response_model=LogoutResponse)
