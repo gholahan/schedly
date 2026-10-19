@@ -21,10 +21,12 @@ export function useAuth() {
   const isMutating = loginMutation.isPending || signupMutation.isPending;
   const { data: fetchedUser, isLoading } = useMe(!isAuthPage && !isOnboardingPage && !isMutating && pathname !== null);
 
+  const effectiveUser = user || fetchedUser || null;
+
   return {
-    user: user || fetchedUser || null,
+    user: effectiveUser,
     isLoading,
-    isAuthenticated: !!user || !!fetchedUser,
+    isAuthenticated: !!effectiveUser,
 
     login: loginMutation.mutate,
     signup: signupMutation.mutate,
@@ -70,7 +72,6 @@ export function useRequireCalendar() {
       return;
     }
 
-    // Check user.has_google_calendar directly from /me response
     if (user && !user.has_google_calendar) {
       router.push('/onboarding/connect-calendar');
     }
@@ -79,7 +80,7 @@ export function useRequireCalendar() {
   return {
     isLoading,
     isAuthenticated,
-    isCalendarConnected: user?.has_google_calendar ?? false,
+    isCalendarConnected: user?.has_google_calendar ?? true,
   };
 }
 

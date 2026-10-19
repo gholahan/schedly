@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
+import { Button, TimezoneSelect } from '@/components/ui';
 import { useGetPreferences, useUpdatePreferences } from '@/features/preferences/api/preferences.queries';
 import { useTheme } from '@/features/theme/theme.provider';
 
@@ -24,7 +24,13 @@ export default function CustomizePreferencesPage() {
 
   const [workingStart, setWorkingStart] = useState('09:00');
   const [workingEnd, setWorkingEnd] = useState('17:00');
-  const [timezone, setTimezone] = useState('UTC');
+  const [timezone, setTimezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {
+      return 'UTC';
+    }
+  });
   const [workingDays, setWorkingDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
   const [duration, setDuration] = useState(30);
   const [buffer, setBuffer] = useState(15);
@@ -160,12 +166,9 @@ export default function CustomizePreferencesPage() {
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Scheduling Defaults</h3>
           <div>
             <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Timezone</label>
-            <input
-              type="text"
+            <TimezoneSelect
               value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              placeholder="e.g. UTC, America/New_York"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
+              onChange={setTimezone}
             />
           </div>
 
