@@ -1,259 +1,449 @@
 @import "tailwindcss";
 
-/* ============================================
-   Schedly — ChatGPT-Inspired Design System
-   Tailwind CSS v4
-   ============================================ */
 
-/* Theme Tokens — Light Mode */
+/* Theme tokens */
 @theme {
   /* Accent */
-  --color-primary: #10A37F;
-  --color-primary-hover: #0D8C6D;
-  --color-primary-active: #0A735A;
+  --color-primary: #0d0d0d;
+  --color-primary-text: #ffffff;
+  --color-primary-hover: #212121;
+  --color-primary-active: #333333;
+  --color-text-inverse: #ffffff;
+
 
   /* Backgrounds */
-  --color-background: #FFFFFF;
-  --color-surface: #F9F9F9;
-  --color-surface-hover: #F0F0F0;
-  --color-surface-active: #E8E8E8;
+  --color-background: #ffffff;
+  --color-surface: #f9f9f9;
+  --color-surface-hover: #f0f0f0;
+  --color-surface-active: #e5e5e5;
+
+  --color-sidebar: #f9f9f9;
+  --color-sidebar-hover: #ececec;
+  --color-sidebar-active: #e5e5e5;
+
+  /* Chat surfaces */
+  --color-message-user-bg: #f4f4f4;
+  --color-message-assistant-bg: transparent;
+  --color-composer-bg: #ffffff;
+  --color-composer-border: #d9d9d9;
 
   /* Borders */
-  --color-border: #E5E5E5;
-  --color-border-light: #F0F0F0;
-  --color-border-strong: #D1D1D1;
+  --color-border: #e5e5e5;
+  --color-border-light: #f0f0f0;
+  --color-border-strong: #d9d9d9;
 
   /* Text */
-  --color-text-primary: #0D0D0D;
-  --color-text-secondary: #5D5D5D;
-  --color-text-tertiary: #8F8F8F;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: #0d0d0d;
+  --color-text-secondary: #5d5d5d;
+  --color-text-tertiary: #8f8f8f;
+  --color-text-inverse: #ffffff;
 
-  /* Status */
-  --color-success: #10A37F;
-  --color-success-bg: #E5F5EF;
+  /* Status colors */
+  --color-success: #10a37f;
+  --color-success-bg: #e5f5ef;
 
-  --color-warning: #D97706;
-  --color-warning-bg: #FEF3C7;
+  --color-warning: #b45309;
+  --color-warning-bg: #fef3c7;
 
-  --color-error: #E53935;
-  --color-error-bg: #FDECEC;
+  --color-error: #dc2626;
+  --color-error-bg: #fee2e2;
 
-  --color-info: #2563EB;
-  --color-info-bg: #EFF6FF;
+  --color-info: #2563eb;
+  --color-info-bg: #dbeafe;
+
+  /* Code blocks */
+  --color-code-bg: #0d0d0d;
+  --color-code-text: #f3f4f6;
+  --color-code-inline-bg: #f0f0f0;
 
   /* Typography */
-  --font-sans: var(--font-geist-sans), -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    ui-sans-serif, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --text-xs: 0.75rem;   /* 12px — timestamps, meta */
+  --text-sm: 0.8125rem; /* 13px — sidebar items, labels */
+  --text-base: 0.9375rem; /* 15px — message body */
+  --text-lg: 1.0625rem; /* 17px — section headers */
+  --text-xl: 1.5rem;    /* 24px — page titles */
 
   /* Radii */
   --radius-control: 0.5rem;
   --radius-card: 0.75rem;
   --radius-panel: 1rem;
   --radius-pill: 9999px;
+
+  /* Shadows (ChatGPT's elevation is subtle — no heavy drop shadows) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-/* ============================================
-   Dark Mode
-   Apply .dark to <html> or <body>
-   ============================================ */
+/* =========================================
+   DARK MODE
+   Activate with .dark on <html>
+   ========================================= */
 
 .dark {
   color-scheme: dark;
 
-  --color-primary: #10A37F;
-  --color-primary-hover: #13B88F;
-  --color-primary-active: #0D8C6D;
+  --color-primary: #ffffff;
+  --color-primary-text: #0d0d0d;
+  --color-primary-hover: #e5e5e5;
+  --color-primary-active: #d4d4d4;
+  --color-text-inverse: #0d0d0d;
 
   --color-background: #212121;
-  --color-surface: #2F2F2F;
+  --color-surface: #2f2f2f;
   --color-surface-hover: #383838;
   --color-surface-active: #424242;
+
+  --color-sidebar: #171717;
+  --color-sidebar-hover: #212121;
+  --color-sidebar-active: #2a2a2a;
+
+  --color-message-user-bg: #2f2f2f;
+  --color-message-assistant-bg: transparent;
+  --color-composer-bg: #2f2f2f;
+  --color-composer-border: #4d4d4d;
 
   --color-border: #424242;
   --color-border-light: #353535;
   --color-border-strong: #565656;
 
-  --color-text-primary: #F9F9F9;
-  --color-text-secondary: #B4B4B4;
-  --color-text-tertiary: #8F8F8F;
-  --color-text-inverse: #0D0D0D;
+  --color-text-primary: #f9f9f9;
+  --color-text-secondary: #b4b4b4;
+  --color-text-tertiary: #8f8f8f;
 
-  --color-success: #10A37F;
-  --color-success-bg: #153C32;
+  --color-success: #10a37f;
+  --color-success-bg: #153c32;
 
-  --color-warning: #FBBF24;
-  --color-warning-bg: #422D0A;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #422d0a;
 
-  --color-error: #F87171;
-  --color-error-bg: #451C1C;
+  --color-error: #f87171;
+  --color-error-bg: #451c1c;
 
-  --color-info: #60A5FA;
-  --color-info-bg: #172D48;
+  --color-info: #60a5fa;
+  --color-info-bg: #172d48;
+
+  --color-code-bg: #0d0d0d;
+  --color-code-text: #e5e7eb;
+  --color-code-inline-bg: #383838;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-/* ============================================
-   Base Styles
-   ============================================ */
+/* =========================================
+   BASE
+   Wrapped in @layer base so these rules
+   compete with Tailwind on layer order
+   instead of auto-winning as unlayered CSS.
+   ========================================= */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@layer base {
 
-html {
-  min-height: 100%;
-  scroll-behavior: smooth;
-  color-scheme: light;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
-
-  font-family: var(--font-geist-sans), -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 400;
-
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* ============================================
-   Selection
-   ============================================ */
-
-::selection {
-  background-color: rgb(16 163 127 / 20%);
-  color: inherit;
-}
-
-/* ============================================
-   Focus — Accessible and Minimal
-   ============================================ */
-
-:focus {
-  outline: none;
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* ============================================
-   Form Controls
-   ============================================ */
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-button {
-  color: inherit;
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-input,
-textarea,
-select {
-  color: var(--color-text-primary);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--color-text-tertiary);
-  opacity: 1;
-}
-
-textarea {
-  resize: vertical;
-}
-
-/* ============================================
-   Links
-   ============================================ */
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-a:hover {
-  color: inherit;
-}
-
-/* ============================================
-   Scrollbars
-   ============================================ */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-strong) transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-strong);
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-text-tertiary);
-}
-
-/* ============================================
-   Minimal Transitions
-   Avoid global transitions on every property.
-   ============================================ */
-
-button,
-a,
-input,
-textarea,
-select {
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease,
-    opacity 150ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    box-sizing: border-box;
   }
+
+  html {
+    min-height: 100%;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    color-scheme: light;
+    scroll-behavior: smooth;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+
+    font-family: var(--font-sans);
+
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* =========================================
+     TYPOGRAPHY
+     ========================================= */
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  p {
+    color: inherit;
+  }
+
+  small {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
+
+  strong,
+  b {
+    font-weight: 600;
+  }
+
+  /* =========================================
+     LINKS
+     ========================================= */
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: inherit;
+  }
+
+  /* =========================================
+     BUTTONS AND FORM ELEMENTS
+     ========================================= */
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    color: inherit;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  input,
+  textarea,
+  select {
+    color: var(--color-text-primary);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 1;
+  }
+
+  input,
+  textarea,
+  select {
+    background-color: var(--color-background);
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-text-secondary);
+    outline-offset: 2px;
+  }
+
+  /* =========================================
+     SELECTION
+     ========================================= */
+
+  ::selection {
+    background: var(--color-border-strong);
+    color: var(--color-text-primary);
+  }
+
+  /* =========================================
+     SCROLLBARS
+     ========================================= */
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-tertiary);
+  }
+
+  /* =========================================
+     TABLES
+     ========================================= */
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  th {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+  }
+
+  /* =========================================
+     CODE
+     ========================================= */
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  code {
+    background-color: var(--color-code-inline-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 0.3em;
+    font-size: 0.875em;
+  }
+
+  pre {
+    overflow-x: auto;
+    background-color: var(--color-code-bg);
+    color: var(--color-code-text);
+    border-radius: var(--radius-card);
+    padding: 1rem;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  kbd {
+    display: inline-block;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 0.3em;
+    padding: 0.1em 0.5em;
+    font-size: 0.8125em;
+    color: var(--color-text-secondary);
+  }
+
+  /* =========================================
+     CHAT-SPECIFIC PRIMITIVES
+     ========================================= */
+
+  .chat-sidebar {
+    background-color: var(--color-sidebar);
+    border-right: 1px solid var(--color-border-light);
+  }
+
+  .chat-message-user {
+    background-color: var(--color-message-user-bg);
+    border-radius: var(--radius-panel);
+    padding: 0.625rem 1rem;
+  }
+
+  .chat-message-assistant {
+    background-color: var(--color-message-assistant-bg);
+  }
+
+  .chat-composer {
+    background-color: var(--color-composer-bg);
+    border: 1px solid var(--color-composer-border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .dropdown-panel {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-dropdown);
+  }
+
+  /* =========================================
+     TRANSITIONS
+     ========================================= */
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      box-shadow 150ms ease,
+      opacity 150ms ease;
+  }
+
+  /* =========================================
+     ACCESSIBILITY
+     ========================================= */
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
 }

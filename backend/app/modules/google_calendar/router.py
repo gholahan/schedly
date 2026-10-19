@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from sqlmodel import select
@@ -30,8 +30,14 @@ OAUTH_STATE_TTL = 600  # 10 minutes
 @router.get("/connect")
 async def connect_google_calendar(
     redis: RedisDep,
-    current_user: User = Depends(get_current_user),
+    request: Request,
+    session: SessionDep,
 ):
+    try:
+        current_user = await get_current_user(request, session)
+    except HTTPException:
+        return RedirectResponse(url=f"{settings.frontend_url}/login?error=not_authenticated")
+
     state = secrets.token_urlsafe(32)
 
     await redis.set(f"oauth:google:{state}", str(current_user.id), ex=OAUTH_STATE_TTL)
@@ -70,17 +76,17 @@ async def google_callback(
     error: str | None = Query(default=None),
 ):
     if error:
-        raise HTTPException(status_code=400, detail=f"Google OAuth failed: {error}")
+        return RedirectResponse(url=f"{settings.frontend_url}/onboarding/connect-calendar?error=google_oauth_failed&message={error}")
 
     if not code or not state:
-        raise HTTPException(status_code=400, detail="Missing OAuth code or state")
+        return RedirectResponse(url=f"{settings.frontend_url}/onboarding/connect-calendar?error=missing_parameters")
 
     # 1. Validate state and recover user_id
     redis_key = f"oauth:google:{state}"
     user_id = await redis.get(redis_key)
 
     if not user_id:
-        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
+        return RedirectResponse(url=f"{settings.frontend_url}/onboarding/connect-calendar?error=invalid_state")
 
     # 2. Consume state immediately
     await redis.delete(redis_key)
@@ -89,7 +95,7 @@ async def google_callback(
     try:
         tokens = exchange_code_for_tokens(code, state)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to exchange Google authorization code: {e}")
+        return RedirectResponse(url=f"{settings.frontend_url}/onboarding/connect-calendar?error=token_exchange_failed")
 
     # 4. Check whether user already has a connection
     result = await session.execute(
@@ -117,4 +123,4 @@ async def google_callback(
 
     await session.commit()
 
-    return RedirectResponse(url=f"{settings.frontend_url}/dashboard/calendar?connected=true")
+    return RedirectResponse(url=f"{settings.frontend_url}/onboarding/connect-calendar?connected=true")

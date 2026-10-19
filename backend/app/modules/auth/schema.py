@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     plan: str
     credits: int
+    has_google_calendar: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
