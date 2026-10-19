@@ -1,61 +1,91 @@
-// Button component matching ChatGPT design exactly from Figma
 
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      isLoading = false,
+      disabled = false,
+      type = 'button',
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}
+        type={type}
         disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
         className={cn(
-          // Base styles - ChatGPT exact design
-          'inline-flex items-center justify-center font-medium rounded-md transition-all duration-200',
-          'focus:outline-none',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          // Base styles
+          'inline-flex items-center justify-center gap-2',
+          'rounded-[var(--radius-control)] font-medium',
+          'transition-colors duration-150',
+          'focus-visible:outline-2 focus-visible:outline-offset-2',
+          'focus-visible:outline-[var(--color-text-secondary)]',
+          'disabled:cursor-not-allowed disabled:opacity-50',
 
-          // Variants - ChatGPT colors
+          // Primary: black background, white text (in light mode), white background, black text (in dark mode)
           variant === 'primary' && [
-            'bg-[#10a37f] text-white shadow-sm',
-            'hover:bg-[#1a7f64]',
-            'active:scale-[0.98]',
-            'disabled:hover:bg-[#10a37f]',
+            'bg-[var(--color-primary)]',
+            'text-[var(--color-primary-text)]',
+            'border border-[var(--color-border-strong)]',
+            'shadow-[var(--shadow-sm)]',
+            'hover:bg-[var(--color-primary-hover)]',
+            'active:bg-[var(--color-primary-active)]',
           ],
+
+          // Secondary
           variant === 'secondary' && [
-            'bg-white text-[#2d333a] border border-[#c2c8cc]',
-            'hover:bg-[#f7f7f8]',
-            'dark:bg-[#3e3f4b] dark:text-[#ececf1] dark:border-[#565869]',
-            'dark:hover:bg-[#4a4b5a]',
+            'border border-[var(--color-border-strong)]',
+            'bg-[var(--color-background)]',
+            'text-[var(--color-text-primary)]',
+            'hover:bg-[var(--color-surface)]',
+            'active:bg-[var(--color-surface-active)]',
           ],
+
+          // Ghost
           variant === 'ghost' && [
-            'text-[#6e6e80] hover:bg-[#f7f7f8]',
-            'dark:text-[#8e8ea0] dark:hover:bg-[#2a2b32]',
+            'text-[var(--color-text-secondary)]',
+            'hover:bg-[var(--color-surface)]',
+            'hover:text-[var(--color-text-primary)]',
+            'active:bg-[var(--color-surface-active)]',
           ],
+
+          // Danger
           variant === 'danger' && [
-            'bg-[#ef4146] text-white',
-            'hover:bg-[#d93c41]',
-            'active:scale-[0.98]',
+            'bg-[var(--color-error)]',
+            'text-white',
+            'hover:opacity-90',
+            'active:opacity-80',
           ],
 
-          // Sizes - ChatGPT dimensions
-          size === 'sm' && 'h-9 px-3 text-sm',
-          size === 'md' && 'h-11 px-4 text-base',
-          size === 'lg' && 'h-[52px] px-6 text-base',
+          // Sizes
+          size === 'sm' && 'h-9 px-3 text-[var(--text-xs)]',
+          size === 'md' && 'h-10 px-4 text-[var(--text-sm)]',
+          size === 'lg' && 'h-13 px-6 text-[var(--text-base)]',
 
-          className
+          className,
         )}
         {...props}
       >
         {isLoading && (
           <svg
-            className="mr-2 h-4 w-4 animate-spin"
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -75,10 +105,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </svg>
         )}
+
         {children}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';
