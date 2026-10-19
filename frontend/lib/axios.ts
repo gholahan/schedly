@@ -54,6 +54,15 @@ apiClient.interceptors.response.use(
 
     // If 401 and not already retrying, attempt token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Do not attempt token refresh for auth endpoints
+      if (
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/signup') ||
+        originalRequest.url?.includes('/auth/refresh')
+      ) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // Queue this request while refresh is in progress
         return new Promise((resolve, reject) => {

@@ -40,12 +40,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
           // Primary: black background, white text (in light mode), white background, black text (in dark mode)
           variant === 'primary' && [
-            'bg-[var(--color-primary)]',
-            'text-[var(--color-primary-text)]',
+            'bg-black text-white dark:bg-white dark:text-black',
             'border border-[var(--color-border-strong)]',
             'shadow-[var(--shadow-sm)]',
-            'hover:bg-[var(--color-primary-hover)]',
-            'active:bg-[var(--color-primary-active)]',
+            'hover:bg-neutral-800 dark:hover:bg-neutral-100',
+            'active:bg-neutral-700 dark:active:bg-neutral-200',
           ],
 
           // Secondary
