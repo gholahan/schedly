@@ -15,7 +15,7 @@ RULES:
 - Use sentence case, not title case
 - No punctuation at the end
 - Be specific when possible (use day names, event types)
-- If the message is a greeting only, return "New conversation"
+- If the message is a greeting only (e.g., "hello", "hi", "good morning", "hey", "greetings"), generate a helpful descriptive title like "General scheduling", "Calendar chat", or "Scheduling assistance" rather than "New conversation"
 
 Respond with ONLY the title, nothing else."""
 
@@ -49,9 +49,9 @@ async def generate_conversation_title(user_message: str, model: Any) -> str:
 
         title = str(response.content).strip()
 
-        # Validate and clean the title
-        if not title or len(title) > 100:
-            logger.warning("Generated title invalid (empty or too long), using fallback")
+        # Validate and clean the title (refrain from "New conversation")
+        if not title or len(title) > 100 or title.lower() in ("new conversation", "new chat"):
+            logger.warning("Generated title invalid or generic, using fallback")
             return _fallback_title(user_message)
 
         logger.info("Generated conversation title: %r", title)
@@ -63,12 +63,17 @@ async def generate_conversation_title(user_message: str, model: Any) -> str:
 
 
 def _fallback_title(user_message: str) -> str:
-    """Generate a simple fallback title when LLM is unavailable.
+    """Generate a simple fallback title when LLM is unavailable or returns generic title.
 
-    Extracts first few words from the user message as the title.
+    Extracts first few words from the user message as the title or maps greetings.
     """
     if not user_message or not user_message.strip():
-        return "New conversation"
+        return "General scheduling"
+
+    cleaned = user_message.strip().lower()
+    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "sup", "howdy", "morning", "afternoon"]
+    if cleaned in greetings or any(cleaned.startswith(g) for g in ["hello", "hi ", "hey ", "good morning", "good afternoon", "greetings", "morning"]):
+        return "General scheduling"
 
     # Take first 6 words, capitalize first letter
     words = user_message.strip().split()[:6]
