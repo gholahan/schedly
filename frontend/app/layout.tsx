@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Schedly - AI Calendar Assistant",
   description: "Intelligent calendar management powered by AI",
+  verification: {
+    google: "srqIz4rBUsvhFZivzcdw3SlOBIVOyMM7rd5CIQrOa4A",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
