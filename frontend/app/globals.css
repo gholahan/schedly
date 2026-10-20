@@ -289,32 +289,16 @@
   }
 
   /* =========================================
-     SCROLLBARS
+     SCROLLBARS (Modern Hidden / Clean Scroll)
      ========================================= */
 
   * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border-strong) transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background-color: var(--color-border-strong);
-    border: 2px solid transparent;
-    border-radius: 9999px;
-    background-clip: padding-box;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-text-tertiary);
+    display: none;
   }
 
   /* =========================================

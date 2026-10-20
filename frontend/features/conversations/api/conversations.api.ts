@@ -47,7 +47,7 @@ export const conversationsApi = {
   },
 
   sendMessage: async (content: string, conversationId?: string): Promise<AIMessage> => {
-    const response = await apiClient.post<AIMessage>('/agent/conversations/chat', {
+    const response = await apiClient.post<AIMessage>('/agent/chat', {
       content,
       conversation_id: conversationId,
     });

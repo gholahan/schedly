@@ -296,7 +296,7 @@ async def process_chat_message(
 ) -> AIMessageResponse:
     """Coordinate the full chat flow."""
     from app.modules.agent.gragh import graph as ai_graph, model
-    from app.modules.agent.title_generator import generate_conversation_title
+    from app.modules.agent.title_generator import generate_conversation_title, _fallback_title
 
     if ai_graph is None:
         raise RuntimeError(
@@ -305,15 +305,43 @@ async def process_chat_message(
 
     conversation = await get_or_create_conversation(user_id, session, conversation_id)
 
-    # Generate title for new conversations from the first user message
+    # Generate title for new conversations instantly using smart fallback, then refine in background via LLM
     is_new_conversation = conversation.title == "New Chat"
     if is_new_conversation:
-        conversation.title = await generate_conversation_title(content, model)
+        conversation.title = _fallback_title(content)
         logger.info(
-            "Generated title for new conversation %s: %r",
+            "Generated instant title for new conversation %s: %r",
             conversation.id,
             conversation.title,
         )
+
+        async def background_generate_title(conv_id: UUID, user_msg: str, user_id_val: UUID):
+            try:
+                import asyncio
+                from app.database.session import engine
+                from app.modules.agent.title_generator import generate_conversation_title
+                from app.modules.agent.gragh import model
+
+                async with AsyncSession(engine, expire_on_commit=False) as bg_session:
+                    new_title = await generate_conversation_title(user_msg, model)
+                    if new_title and new_title != "New Chat":
+                        res = await bg_session.execute(
+                            select(AIConversation).where(
+                                AIConversation.id == conv_id,
+                                AIConversation.user_id == user_id_val,
+                            )
+                        )
+                        conv_to_update = res.scalar_one_or_none()
+                        if conv_to_update:
+                            conv_to_update.title = new_title
+                            bg_session.add(conv_to_update)
+                            await bg_session.commit()
+                            logger.info("Background LLM generated title updated for conversation %s: %r", conv_id, new_title)
+            except Exception as bg_exc:
+                logger.warning("Background title generation failed: %s", bg_exc)
+
+        import asyncio
+        asyncio.create_task(background_generate_title(conversation.id, content, user_id))
 
     conversation.updated_at = datetime.now(timezone.utc)
     session.add(conversation)
