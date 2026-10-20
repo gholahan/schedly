@@ -4,7 +4,7 @@ import type {
   ProfileUpdateRequest,
   ChangePasswordRequest,
   DeleteAccountRequest,
-} from '../types/profile.types';
+} from '../types';
 
 /**
  * Get current user's profile
