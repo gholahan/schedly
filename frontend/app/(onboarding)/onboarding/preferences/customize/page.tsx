@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, TimezoneSelect } from '@/components/ui';
+import { Button, TimezoneSelect, TimeSelect } from '@/components/ui';
 import { useGetPreferences, useUpdatePreferences } from '@/features/preferences/api/preferences.queries';
 import { useTheme } from '@/features/theme/theme.provider';
 
@@ -118,20 +118,16 @@ export default function CustomizePreferencesPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Start Time</label>
-              <input
-                type="time"
+              <TimeSelect
                 value={workingStart}
-                onChange={(e) => setWorkingStart(e.target.value)}
-                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
+                onChange={setWorkingStart}
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">End Time</label>
-              <input
-                type="time"
+              <TimeSelect
                 value={workingEnd}
-                onChange={(e) => setWorkingEnd(e.target.value)}
-                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
+                onChange={setWorkingEnd}
               />
             </div>
           </div>
