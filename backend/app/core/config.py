@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # AI
     openrouter_api_key: str
-    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    openrouter_model: str = "minimax/minimax-m3.1-flash:free"
 
     frontend_url: str = "http://localhost:3000"
 

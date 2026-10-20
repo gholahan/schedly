@@ -5,6 +5,7 @@ export interface User {
   plan: string;
   credits: number;
   has_google_calendar: boolean;
+  avatar_url?: string | null;
   created_at: string;
 }
 
