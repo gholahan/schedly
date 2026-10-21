@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { useUserStore } from '@/features/auth/user.store';
 
 // API base URL - will be configurable via env later
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -86,8 +87,9 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as AxiosError);
-        // Refresh failed - redirect to login
+        // Refresh failed - clear user store and redirect to login
         if (typeof window !== 'undefined') {
+          useUserStore.getState().clearUser();
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);
