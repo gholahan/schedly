@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     openrouter_model: str = "minimax/minimax-m3.1-flash:free"
 
     frontend_url: str = "http://localhost:3000"
+    backend_cors_origins: str = "http://localhost:3000"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
 
     model_config = SettingsConfigDict(
         env_file=".env",
