@@ -42,11 +42,11 @@ async def signup(payload: SignupRequest, response: Response, session: SessionDep
     # Set both tokens as httpOnly cookies
     response.set_cookie(
         key="access_token", value=access_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+        httponly=True, secure=True, samesite="none", max_age=60 * 15,  # 15 minutes
     )
     response.set_cookie(
         key="refresh_token", value=refresh_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,  # 30 days
+        httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24 * 30,  # 30 days
     )
 
     # New user has no Google Calendar yet
@@ -98,11 +98,11 @@ async def login(payload: LoginRequest, response: Response, session: SessionDep):
     # Set both tokens as httpOnly cookies
     response.set_cookie(
         key="access_token", value=access_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+        httponly=True, secure=True, samesite="none", max_age=60 * 15,  # 15 minutes
     )
     response.set_cookie(
         key="refresh_token", value=refresh_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30,  # 30 days
+        httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24 * 30,  # 30 days
     )
 
     # Check if user has Google Calendar
@@ -150,7 +150,7 @@ async def refresh(request: Request, response: Response, session: SessionDep):
     # Set new access_token as httpOnly cookie
     response.set_cookie(
         key="access_token", value=new_access_token,
-        httponly=True, secure=True, samesite="lax", max_age=60 * 15,  # 15 minutes
+        httponly=True, secure=True, samesite="none", max_age=60 * 15,  # 15 minutes
     )
 
     return RefreshResponse(access_token=new_access_token)
