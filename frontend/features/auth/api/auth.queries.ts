@@ -8,13 +8,19 @@ import { queryKeys } from '@/lib/query-keys';
 
 export function useMe(enabled = true) {
   const setUser = useUserStore((state) => state.setUser);
+  const clearUser = useUserStore((state) => state.clearUser);
 
   return useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: async () => {
-      const user = await authApi.getMe();
-      setUser(user);
-      return user;
+      try {
+        const user = await authApi.getMe();
+        setUser(user);
+        return user;
+      } catch (error) {
+        clearUser();
+        throw error;
+      }
     },
     enabled,
     retry: false,
