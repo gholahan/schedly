@@ -65,12 +65,12 @@ export function useSendChatMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ content, conversationId }: { content: string; conversationId?: string }) =>
-      conversationsApi.sendMessage(content, conversationId),
+      conversationsApi.sendMessage(content, conversationId === 'new' ? undefined : conversationId),
     onSuccess: (response, variables) => {
-      const targetConvId = variables.conversationId || response.conversation_id;
-      const isNewConversation = !variables.conversationId;
+      const isNewConversation = !variables.conversationId || variables.conversationId === 'new';
+      const targetConvId = isNewConversation ? response.conversation_id : variables.conversationId;
 
-      if (targetConvId) {
+      if (targetConvId && targetConvId !== 'new') {
         queryClient.setQueriesData(
           { queryKey: queryKeys.conversations.messages(targetConvId) },
           (oldData: PaginatedAIMessages | undefined) => {
@@ -104,6 +104,7 @@ export function useSendChatMessage() {
       }
 
       if (isNewConversation) {
+        queryClient.removeQueries({ queryKey: queryKeys.conversations.messages('new') });
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
       }
     },

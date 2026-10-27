@@ -69,9 +69,40 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [localMessages, setLocalMessages] = useState<Array<{ role: 'assistant' | 'user'; content: string; created_at?: string }>>([]);
   const [hoveredMessageIdx, setHoveredMessageIdx] = useState<number | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
+  const isPinned = conversationId !== 'new' && pinnedIds.includes(conversationId);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('schedly_pinned_conversations');
+      if (saved) {
+        setPinnedIds(JSON.parse(saved));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const togglePin = () => {
+    if (conversationId === 'new') return;
+    let updated: string[];
+    if (pinnedIds.includes(conversationId)) {
+      updated = pinnedIds.filter(id => id !== conversationId);
+    } else {
+      updated = [...pinnedIds, conversationId];
+    }
+    setPinnedIds(updated);
+    try {
+      localStorage.setItem('schedly_pinned_conversations', JSON.stringify(updated));
+    } catch (e) {
+      // ignore
+    }
+    setIsHeaderMenuOpen(false);
+  };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
@@ -136,8 +167,13 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
     try {
       const response = await sendChatMutation.mutateAsync({
         content: userMessage,
-        conversationId,
+        conversationId: conversationId === 'new' ? undefined : conversationId,
       });
+
+      if (response && response.conversation_id && conversationId === 'new') {
+        router.push(`/c/${response.conversation_id}`);
+        return;
+      }
 
       setLocalMessages((prev) => [
         ...prev,
@@ -151,7 +187,7 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
       ]);
     } catch (error: any) {
       console.error('Failed to send message:', error);
-      setErrorBanner(
+      toast.error(
         error?.response?.data?.detail ||
           'Sorry, I encountered an error connecting to the Schedly backend. Please try again.'
       );
@@ -228,18 +264,18 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
 
               {isHeaderMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl py-1.5 z-30 text-xs text-[var(--color-text-primary)]">
-                  <button
-                    onClick={() => {
-                      setIsHeaderMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[var(--color-surface-active)] transition-colors text-left"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="17" x2="12" y2="22"></line>
-                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-.89 1.65l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
-                    </svg>
-                    <span>Pin chat</span>
-                  </button>
+                  {conversationId !== 'new' && (
+                    <button
+                      onClick={togglePin}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[var(--color-surface-active)] transition-colors text-left"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isPinned ? "text-[var(--color-success)]" : ""}>
+                        <line x1="12" y1="17" x2="12" y2="22"></line>
+                        <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-.89 1.65l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+                      </svg>
+                      <span>{isPinned ? 'Unpin chat' : 'Pin chat'}</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setIsHeaderMenuOpen(false);
@@ -287,7 +323,7 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
           ) : localMessages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full text-center py-10">
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-[var(--color-text-primary)] mb-8">
-                Conversation started
+                Hello, {user?.name ? user.name.split(' ')[0] : 'there'}!
               </h1>
             </div>
           ) : (

@@ -34,6 +34,30 @@ export function ChatSidebar({
   const menuRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTouchStart = (convId: string, e: React.TouchEvent) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setActiveMenuConvId(convId);
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+    }, 500);
+  };
+
+  const handleTouchMove = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [activeMenuConvId, setActiveMenuConvId] = useState<string | null>(null);
@@ -135,6 +159,13 @@ export function ChatSidebar({
     return (
       <div
         key={conv.id}
+        onTouchStart={(e) => handleTouchStart(conv.id, e)}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setActiveMenuConvId(conv.id);
+        }}
         onClick={() => {
           if (isRenaming) return;
           setIsSidebarOpen(false);
@@ -193,7 +224,7 @@ export function ChatSidebar({
                     e.stopPropagation();
                     setActiveMenuConvId(isMenuOpen ? null : conv.id);
                   }}
-                  className={`opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-opacity ${
+                  className={`opacity-60 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-opacity ${
                     isMenuOpen ? 'opacity-100 bg-[var(--color-surface-hover)]' : ''
                   }`}
                   title="Options"
@@ -272,13 +303,13 @@ export function ChatSidebar({
           setIsSidebarOpen(false);
         }
       }}
-      className={`flex flex-col w-64 border-r border-[var(--color-border)] bg-[var(--color-sidebar)] transition-all duration-300 ease-in-out z-20 shrink-0 absolute md:relative h-full ${
+      className={`flex flex-col w-64 border-r border-[var(--color-border)] bg-[var(--color-sidebar)] transition-all duration-300 ease-in-out z-20 shrink-0 absolute md:relative h-full overflow-hidden ${
         isSidebarOpen
           ? 'translate-x-0 opacity-100 shadow-lg md:shadow-none'
           : '-translate-x-full md:-ml-64 opacity-0 md:opacity-100'
       }`}
     >
-      <div className="flex flex-col h-full w-64">
+      <div className="flex flex-col h-full w-64 overflow-hidden">
         {/* Top Sidebar Header */}
         <div className="flex items-center justify-between p-3 border-b border-[var(--color-border)]/50 shrink-0">
           <div className="flex items-center gap-2.5 px-1">
@@ -329,7 +360,7 @@ export function ChatSidebar({
         </div>
 
         {/* Chat History List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
           {isLoadingConversations ? (
             <div className="px-2 py-3 text-xs text-[var(--color-text-tertiary)] animate-pulse">
               Loading conversations...
