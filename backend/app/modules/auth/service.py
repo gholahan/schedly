@@ -35,7 +35,7 @@ def _hash_token(token: str) -> str:
 
 
 async def save_refresh_token(
-    user_id: UUID,
+    user_id: UUID | str,
     token: str,
     session: SessionDep,
     expires_days: int = 30,
@@ -43,6 +43,8 @@ async def save_refresh_token(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> RefreshToken:
+    if isinstance(user_id, str):
+        user_id = UUID(user_id)
     rt = RefreshToken(
         user_id=user_id,
         token_hash=_hash_token(token),
@@ -56,7 +58,9 @@ async def save_refresh_token(
     return rt
 
 
-async def verify_refresh_token(user_id: UUID, token: str, session: SessionDep) -> bool:
+async def verify_refresh_token(user_id: UUID | str, token: str, session: SessionDep) -> bool:
+    if isinstance(user_id, str):
+        user_id = UUID(user_id)
     token_hash = _hash_token(token)
     result = await session.exec(
         select(RefreshToken).where(
@@ -69,7 +73,9 @@ async def verify_refresh_token(user_id: UUID, token: str, session: SessionDep) -
     return result.first() is not None
 
 
-async def revoke_refresh_token(user_id: UUID, token: str, session: SessionDep) -> None:
+async def revoke_refresh_token(user_id: UUID | str, token: str, session: SessionDep) -> None:
+    if isinstance(user_id, str):
+        user_id = UUID(user_id)
     token_hash = _hash_token(token)
     result = await session.exec(
         select(RefreshToken).where(
@@ -84,7 +90,9 @@ async def revoke_refresh_token(user_id: UUID, token: str, session: SessionDep) -
         await session.commit()
 
 
-async def revoke_all_user_tokens(user_id: UUID, session: SessionDep) -> None:
+async def revoke_all_user_tokens(user_id: UUID | str, session: SessionDep) -> None:
+    if isinstance(user_id, str):
+        user_id = UUID(user_id)
     result = await session.exec(
         select(RefreshToken).where(
             RefreshToken.user_id == user_id,
