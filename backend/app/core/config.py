@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # AI
     openrouter_api_key: str
-    openrouter_model: str = "minimax/minimax-m3.1-flash:free"
+    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
     frontend_url: str = "http://localhost:3000"
     backend_cors_origins: str = "http://localhost:3000"
