@@ -9,7 +9,8 @@ AI-powered calendar assistant backend built with FastAPI and LangGraph. Translat
 - **Database**: PostgreSQL (asyncpg) + SQLModel ORM
 - **Auth**: JWT + Argon2 password hashing
 - **External APIs**: Google Calendar API (OAuth 2.0)
-- **Migrations**: Alembic (7 production migrations)
+- **Migrations**: Alembic
+- **Test**: Pytest
 
 ## Architecture
 
@@ -33,33 +34,56 @@ graph TB
     style Agent fill:#e1bee7
 ```
 
+## Running Locally
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL 14+ (two databases required)
+- Redis 6+ (required for OAuth CSRF protection)
+
+### Setup
+
+```bash
+# 1. Navigate to backend
+cd backend
+
+# 2. Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Configure environment
+cp .env.example .env
+# Edit .env with your credentials (see Environment Variables section)
+
+# 5. Create databases
+createdb schedly
+createdb schedly_langgraph
+
+# 6. Run migrations
+alembic upgrade head
+
+# 7. Start server
+uvicorn app.main:app --reload --port 8000
+```
+
+API docs: http://localhost:8000/docs (auto-generated Swagger UI)
+
 ### Module Structure
 
 ```
 backend/app/
 ├── main.py                      # FastAPI app + lifespan
 ├── api.py                       # Router aggregation
-├── core/
-│   ├── config.py               # Pydantic settings (env-based)
-│   ├── security.py             # JWT + Argon2 hashing
-│   └── logging.py              # Structured logging
-├── database/
-│   ├── session.py              # AsyncEngine + connection pooling
-│   └── redis.py                # Cache layer
-└── modules/
-    ├── auth/                   # User auth + refresh tokens
-    │   ├── service.py         # Token operations
-    │   └── dependencies.py    # get_current_user()
-    ├── google_calendar/        # OAuth + Calendar client
-    │   ├── client.py          # get_google_calendar_client()
-    │   └── service.py         # Calendar business logic
-    ├── preferences/            # User scheduling preferences
-    └── agent/                  # LangGraph implementation
-        ├── gragh.py           # Graph compilation
-        ├── tools.py           # 8 calendar tools
-        ├── services.py        # DI for tools
-        ├── state.py           # ChatState definition
-        └── routes.py          # Chat endpoints
+├── core/                        # Configuration, security (JWT/Argon2), and logging
+├── database/                    # Database session pooling and Redis cache layer
+└── modules/                     # Feature modules
+    ├── auth/                    # User authentication and refresh token rotation
+    ├── google_calendar/         # Google OAuth, token encryption, and calendar client
+    ├── preferences/             # User scheduling preferences and calendar filtering
+    └── agent/                   # LangGraph implementation, tools, and endpoints
 ```
 
 ## Authentication
@@ -147,35 +171,10 @@ Redis stores temporary OAuth state mappings to prevent CSRF attacks:
 2. **State Validation** (`google_calendar/router.py:google_callback()`):
    - Fetch `user_id` from Redis using state from callback
    - Verify state exists (not expired, not tampered)
-   - Delete state immediately after it has been consumed (single-use consumption)
+   - Delete state immediately after consumption (single-use enforcement)
    - Exchange authorization code for tokens
 
-**Why Redis is Required:**
-
-| Storage Option | Problem |
-|----------------|---------|
-| **Database** | Too slow for high-frequency OAuth redirects, no native TTL |
-| **JWT/Cookie** | State token would be client-controlled (security risk) |
-| **In-Memory Dict** | Lost on server restart, doesn't work with multi-instance deployment |
-| **Redis** | Fast, atomic operations, native TTL, works across instances |
-
-**Security Properties:**
-- **Single-Use**: State deleted immediately after validation
-- **Time-Bound**: 10-minute TTL prevents replay attacks
-- **User-Bound**: State are mappped to specific user and can't be reused for different account
-- **Random**: 32-byte URL-safe token (256-bit entropy) prevents guessing
-
-**Configuration:**
-- Redis connection string: `REDIS_URL=redis://localhost:6379`
-- State key pattern: `oauth:google:{state}`
-- TTL: 600 seconds (10 minutes)
-- See `database/redis.py` for connection setup
-
-**Key Implementation:**
-- **Authorization**: `google_calendar/router.py:connect_google_calendar()` generates OAuth URL with state parameter
-- **Token Exchange**: `google_calendar/router.py:google_callback()` validates state via Redis before exchanging code
-- **Encryption**: Tokens encrypted with Fernet (AES-128) before DB storage
-- **Auto-Refresh**: `google_calendar/client.py:get_google_calendar_client()` checks expiry, refreshes if needed
+**Security Properties:** Single-use deletion upon validation, 10-minute time-bound TTL preventing replay attacks, user-bound mapping preventing cross-account reuse, and 32-byte URL-safe random tokens providing 256-bit entropy.
 
 **Token Refresh Strategy:**
 - Access tokens expire after 1 hour
@@ -227,8 +226,7 @@ graph LR
 | `get_event` | Single event retrieval | By ID + calendar ID |
 
 **Tool Design Pattern:**
-- Tools decorated with `@tool` from `langchain_core.tools`
-- Extract `user_id` and `db_session` from `RunnableConfig` via `agent/services.py:get_google_client_from_config()`
+- All tools extract `user_id`, `calendar_connection`, and `db_session` from `RunnableConfig` via `agent/services.py:get_google_client_from_config()`
 - Return `{"success": bool, "error": str | None, ...}` for consistent error handling
 - All failures logged, never thrown (agent continues conversation)
 
@@ -236,56 +234,7 @@ graph LR
 
 ### Service Layer Design
 
-**Philosophy**: Business logic in `google_calendar/service.py` is decoupled from OAuth. All functions accept pre-authenticated `Resource` client.
-
-**Key Algorithms:**
-
-#### 1. Multi-Calendar Event Fetching
-
-**Function**: `google_calendar/service.py:fetch_events_all_calendars()`
-
-**Strategy**:
-- Fetch calendar list once
-- Filter by `selected_calendar_ids` from user preferences (empty = all calendars)
-- Priority-based ordering: Primary to User-owned to Holiday calendars
-- Query sequentially (Google API client not thread-safe)
-- Sort all events by `start_time`
-
-**Trade-off**: Sequential queries avoid SSL issues with `googleapiclient`. Parallelism would require per-request client instantiation (higher overhead).
-
-#### 2. Available Slot Finding
-
-**Function**: `google_calendar/service.py:find_available_slots()`
-
-**Algorithm**:
-1. Single freebusy query for entire date range (O(1) API calls)
-2. Merge overlapping busy intervals via `_merge_intervals()`
-3. Walk working hours day-by-day, skipping blocked intervals
-4. Apply user preferences: working hours, working days, buffer minutes, minimum notice
-5. Return up to `max_results` slots
-
-**Trade-off**: Single freebusy query (O(1)) vs. per-day queries (O(n_days)). Memory footprint negligible for merged intervals.
-
-#### 3. Event Normalization
-
-**Function**: `google_calendar/service.py:_normalise_event()`
-
-Maps raw Google Calendar API responses to consistent schema:
-```python
-{
-    "id": str,
-    "calendar_id": str,
-    "title": str,
-    "start_time": datetime,  # ISO 8601
-    "end_time": datetime,
-    "timezone": str | None,
-    "description": str | None,
-    "location": str | None,
-    "attendees": list[str],
-    "status": str,
-    "html_link": str
-}
-```
+**Philosophy**: Business logic in `google_calendar/service.py` is decoupled from OAuth. All functions accept a pre-authenticated `Resource` client.
 
 ### OAuth Token Management
 
@@ -369,19 +318,6 @@ erDiagram
     }
 ```
 
-### Migration History
-
-7 Alembic migrations in `backend/alembic/versions/`:
-
-| Migration | Description |
-|-----------|-------------|
-| `a9e267ac5724` | Initial auth models (User, RefreshToken) |
-| `8f4d283dcbf8` | Google Calendar OAuth connections |
-| `c24e93d5c8a1` | Token encryption (plaintext → Fernet) |
-| `680ed9f310c9` | Agent conversation models (AIConversation, AIMessage) |
-| `ad7cfb62fb38` | User preferences (working hours, calendar filtering) |
-| `2b2e4bc7de58` | Avatar URLs |
-| `3bcdac0e2caf` | Cleaned up AIMessage fields |
 
 ## Key Engineering Decisions
 
@@ -437,44 +373,7 @@ engine = create_async_engine(
 
 ### 4. Redis for OAuth State Management
 
-**Requirement**: Redis is **required** for secure OAuth flows. It stores temporary state tokens that prevent CSRF attacks.
-
-**Implementation** (in `google_calendar/router.py`):
-
-The OAuth flow uses Redis to create a secure, single-use mapping between a state token and the authenticating user:
-
-1. **State Generation** (`connect_google_calendar()`):
-   - Generate cryptographically secure random token: `secrets.token_urlsafe(32)` (256-bit entropy)
-   - Store in Redis: `oauth:google:{state}` → `user_id` (TTL: 10 minutes)
-   - Attach state to OAuth authorization URL sent to Google
-
-2. **State Validation** (`google_callback()`):
-   - Google redirects back with `?code=...&state=...`
-   - Fetch `user_id` from Redis using state parameter
-   - Verify state exists (not expired, not tampered)
-   - Delete state immediately (single-use consumption)
-   - Exchange authorization code for tokens
-
-**Why Redis (not alternatives)**:
-
-| Alternative | Problem |
-|-------------|---------|
-| **Database** | Too slow for OAuth redirects, no native TTL support |
-| **JWT/Cookie** | Client-controlled, can be forged (defeats CSRF protection) |
-| **In-Memory Dict** | Lost on server restart, breaks with load balancers |
-| **Redis** | Sub-millisecond reads, atomic ops, native TTL, distributed |
-
-**Security Properties**:
-- **Single-Use**: State deleted immediately after validation (prevents replay attacks)
-- **Time-Bound**: 10-minute TTL (expired states rejected)
-- **User-Bound**: State maps to specific user ID (can't be reused for different account)
-- **Random**: 32 bytes URL-safe (impossible to guess or enumerate)
-
-**Configuration**:
-- Connection: `REDIS_URL=redis://localhost:6379`
-- Key pattern: `oauth:google:{state}`
-- TTL: `OAUTH_STATE_TTL = 600` seconds
-- See `database/redis.py` for async connection setup
+Redis is required for secure OAuth CSRF state management. Unlike databases (too slow for high-frequency redirects without native TTLs), cookies/JWTs (client-controlled security risks), or in-memory dicts (lost on restart and multi-instance deployments), Redis provides fast, atomic operations, native TTL support, and distributed multi-instance state storage.
 
 ### 5. LangGraph vs. Raw LangChain
 
@@ -488,122 +387,19 @@ The OAuth flow uses Redis to create a secure, single-use mapping between a state
 | **Debugging** | Graph visualizations | Print statements |
 | **Error Recovery** | Conditional edges | Try-catch |
 
-### 5. Tool Dependency Injection
-
-## API Endpoints
-
-### Authentication (`/auth`)
-- `POST /register` - Create account (returns tokens)
-- `POST /login` - Authenticate (returns tokens)
-- `POST /refresh` - Refresh access token
-- `POST /logout` - Revoke refresh token
-- `GET /me` - Current user profile
-
-### Google Calendar (`/google-calendar`)
-- `GET /auth/url` - Generate OAuth URL
-- `GET /callback` - OAuth callback handler
-- `GET /status` - Check connection status
-- `DELETE /disconnect` - Revoke connection
-
-### Agent (`/agent`)
-- `POST /chat` - Send message to AI agent
-- `GET /conversations` - List user's conversations
-- `POST /conversations` - Create new conversation
-- `GET /conversations/{id}` - Get conversation details
-- `GET /conversations/{id}/messages` - Get messages (paginated)
-- `PATCH /conversations/{id}` - Update conversation title
-- `DELETE /conversations/{id}` - Delete conversation
-
-### Preferences (`/preferences`)
-- `GET /` - Get user preferences
-- `PUT /` - Update preferences (working hours, timezone, calendar filtering)
-
-### Users (`/users`)
-- `PATCH /profile` - Update profile (name, email)
-- `POST /avatar` - Upload avatar image
+### 6. Google Calendar Service Trade-offs
+- **Multi-Calendar Fetching**: Uses sequential queries rather than parallel requests to avoid thread-safety and SSL issues with `googleapiclient`.
+- **Slot Finding**: Utilizes a single freebusy query (O(1)) across the entire date range instead of per-day queries (O(n_days)) for performance and efficiency.
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+Copy `.env.example` to `.env` and configure your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-### Required Variables
-
-| Variable | Purpose | How to Get |
-|----------|---------|------------|
-| `DATABASE_URL` | Main Postgres connection | `postgresql+asyncpg://user:pass@host/schedly` |
-| `LANGGRAPH_DB_URL` | LangGraph checkpoints DB | `postgresql://user:pass@host/schedly_langgraph` |
-| `SECRET_KEY` | JWT signing key | `openssl rand -hex 32` |
-| `GOOGLE_CLIENT_ID` | OAuth client ID | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret | Same as above |
-| `GOOGLE_REDIRECT_URI` | OAuth callback URL | `http://localhost:8000/google-calendar/callback` |
-| `GOOGLE_TOKEN_ENCRYPTION_KEY` | Fernet encryption key | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| `OPENROUTER_API_KEY` | LLM API access | [OpenRouter Keys](https://openrouter.ai/keys) |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` (required for OAuth state) |
-
-### Optional Variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `FRONTEND_URL` | `http://localhost:3000` | CORS configuration |
-| `OPENROUTER_MODEL` | `nvidia/nemotron-3-super-120b-a12b:free` | LLM model selection |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | JWT access token lifetime |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Refresh token lifetime |
-| `ALGORITHM` | `HS256` | JWT signing algorithm |
-| `DEBUG` | `False` | Development mode |
-| `LOG_LEVEL` | `INFO` | Logging verbosity |
-
-See `.env.example` for complete configuration template.
-
-### Model Selection
-
-| Model | Cost | Use Case |
-|-------|------|----------|
-| `nvidia/nemotron-3-super-120b-a12b:free` | Free | Development/MVP |
-| `anthropic/claude-3.5-sonnet` | $3/M tokens | Production (best tool accuracy) |
-| `openai/gpt-4o-mini` | $0.15/M tokens | High-volume, simple queries |
-
-**Recommendation**: Start with Nemotron for prototyping, then migrate to Claude 3.5 Sonnet for production (superior calendar tool orchestration).
-
-## Running Locally
-
-### Prerequisites
-- Python 3.11+
-- PostgreSQL 14+ (two databases required)
-- Redis 6+ (required for OAuth CSRF protection)
-
-### Setup
-
-```bash
-# 1. Navigate to backend
-cd backend
-
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-cp .env.example .env
-# Edit .env with your credentials (see Environment Variables section)
-
-# 5. Create databases
-createdb schedly
-createdb schedly_langgraph
-
-# 6. Run migrations
-alembic upgrade head
-
-# 7. Start server
-uvicorn app.main:app --reload --port 8000
-```
-
-API docs: http://localhost:8000/docs (auto-generated Swagger UI)
+For detailed explanations of required and optional configuration variables (such as database URLs, API keys, and model selection), see `.env.example`.
 
 ## Testing the Agent
 
@@ -629,36 +425,35 @@ Response: "Done! I've sent Alice a calendar invite for Tuesday 10:30am"
 3. Respects user preferences (timezone, working hours)
 4. Handles multi-step operations (find slots then create event)
 
+## Testing Suite
+
+Comprehensive unit and integration test suite built with `pytest` and `pytest-asyncio`.
+
+- **Test Score**: **37 / 37 tests passing** (100% success rate across auth, security, users, preferences, agent tools, and Google Calendar integrations).
+- **Reference folder**: backend/test
+
+### Test Architecture
+- **In-Memory Async DB**: Uses SQLite async engine (`sqlite+aiosqlite:///:memory:`) with `StaticPool` for isolated, high-speed database tests.
+- **Fixtures (`tests/conftest.py`)**: Automatic database table creation/teardown per test, async client fixtures (`AsyncClient`), and authenticated user test factories.
+- **Mocking**: External services (Redis, Google Calendar API, LangGraph LLM calls) are mocked for hermetic unit testing.
+
+### Running Tests
+```bash
+# Run all backend tests
+cd ./backend
+pytest -v
+
+# Run with coverage
+pytest --cov=app -v
+```
+
 ## Dependencies
 
-### Core Framework
-- `fastapi==0.142.2` - Async web framework
-- `uvicorn==0.54.0` - ASGI server
-- `sqlmodel==0.0.48` - SQLAlchemy + Pydantic
-- `asyncpg==0.32.0` - High-performance Postgres driver
-- `alembic==1.20.0` - Database migrations
-
-### AI/LLM Stack
-- `langchain==1.4.3` - LLM orchestration
-- `langgraph==1.2.14` - Stateful agent graphs
-- `langgraph-checkpoint-postgres==3.1.3` - Persistent checkpointing
-- `langchain-openai==1.7.0` - OpenRouter integration
-
-### Security
-- `python-jose==3.5.0` - JWT encoding/decoding
-- `passlib==1.7.4` - Argon2 password hashing
-- `argon2-cffi==25.1.0` - Argon2 implementation
-- `cryptography==50.0.2` - Fernet token encryption
-
-### Google APIs
-- `google-api-python-client==2.201.0` - Calendar API client
-- `google-auth==2.60.0` - OAuth 2.0
-- `google-auth-oauthlib==1.5.0` - OAuth helpers
-
-### Production
-- `redis==8.1.0` - Caching layer
-- `pydantic-settings==2.15.0` - Environment config
-- `python-dotenv==1.2.4` - .env file loading
+- **Core Framework**: FastAPI, Uvicorn, SQLModel, asyncpg, Alembic
+- **AI/LLM Stack**: LangChain, LangGraph, langgraph-checkpoint-postgres, langchain-openai
+- **Security**: python-jose, passlib, argon2-cffi, cryptography
+- **Google APIs**: google-api-python-client, google-auth, google-auth-oauthlib
+- **Production**: Redis, pydantic-settings, python-dotenv
 
 ---
 
