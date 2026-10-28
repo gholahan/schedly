@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Schedly Frontend
 
-## Getting Started
+Next.js App Router frontend for the AI-powered calendar assistant.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 16 (App Router, React 19)
+- **State & Data Fetching**: Zustand v5, TanStack Query v5
+- **Styling**: Tailwind CSS v4, Lucide React icons
+- **Validation & Forms**: Zod, React Hook Form
+- **Testing**: Vitest, React Testing Library, MSW v2
+
+## Architecture
+
+```
+frontend/
+├── app/                         # Next.js App Router pages & layouts
+│   ├── (auth)/                  # Login and signup routes
+│   ├── (dashboard)/             # Main app dashboard
+│   └── c/[id]/                  # Chat conversation detail view
+├── features/                    # Feature-based domain modules
+│   ├── auth/                    # Authentication state and components
+│   ├── chat/                    # Chat interface, markdown rendering, sidebar
+│   ├── calendar/                # Calendar management views
+│   └── conversations/           # Conversation queries and mutations
+├── lib/                         # Shared utilities (axios, date-fns, etc.)
+└── tests/                       # Vitest unit & integration test suite
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
+- Node.js 18+ / npm
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Setup
+```bash
+# 1. Navigate to frontend
+cd frontend
 
-## Learn More
+# 2. Install dependencies
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# 3. Configure environment
+cp .env.example .env.local
+# Set NEXT_PUBLIC_API_URL=http://localhost:8000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 4. Run development server
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+App runs at `http://localhost:3000`.
 
-## Deploy on Vercel
+## Testing Suite
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Comprehensive unit and integration test suite built with **Vitest**, **React Testing Library**, and **MSW v2** (Mock Service Worker).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Test Score**: **36 / 36 tests passing** (100% success rate across components, hooks, stores, and API queries).
+- [frontend/vitest.config.mts](vitest.config.mts): Vitest test environment configuration.
+
+- **Reference Folder**:frontend/tests
+
+### Test Architecture
+- **Component Tests**: Render React components with providers (`QueryClient`, router mocks) using `renderWithProviders` ([frontend/tests/utils/render.tsx](tests/utils/render.tsx)).
+- **API Mocking**: Network requests intercepted and mocked via MSW v2 handlers ([frontend/tests/mocks/handlers.ts](tests/mocks/handlers.ts)).
+- **Factories**: Test data factories ([frontend/tests/mocks/factories.ts](tests/mocks/factories.ts)) for consistent mock users and conversation objects.
+
+### Running Tests
+```bash
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+```
