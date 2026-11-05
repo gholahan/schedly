@@ -1,0 +1,16 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    # Runs every 14 minutes to prevent Render's 15-minute spin-down timeout
+    - cron: '*/14 * * * *'
+  # Allows you to trigger it manually from the Actions tab to test
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send HTTP request to FastAPI app
+        run: |
+          curl -I https://schedly-c48t.onrender.com/
