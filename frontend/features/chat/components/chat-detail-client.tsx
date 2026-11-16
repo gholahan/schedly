@@ -208,12 +208,12 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
   };
 
   return (
-    <div className="flex h-screen w-full bg-[var(--color-background)] text-[var(--color-text-primary)] overflow-hidden relative">
+    <div className="flex h-[100dvh] md:h-screen w-full bg-[var(--color-background)] text-[var(--color-text-primary)] overflow-hidden relative">
       {/* Backdrop overlay when sidebar is open on mobile */}
       {isSidebarOpen && (
         <div
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-15 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 md:hidden transition-opacity"
         />
       )}
 
@@ -313,7 +313,7 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto flex flex-col justify-between p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto flex flex-col justify-between px-4 md:px-4 pt-4 md:pt-4 pb-1">
           {isLoadingMessages ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-xs text-[var(--color-text-tertiary)] animate-pulse">
@@ -512,7 +512,7 @@ export default function ChatDetailClient({ conversationId }: ChatDetailClientPro
                 </button>
               </div>
             </form>
-            <div className="text-center mt-3">
+            <div className="text-center mt-1">
               <p className="text-[11px] text-[var(--color-text-tertiary)]">
                 Schedly can make mistakes. Verify important meeting and calendar times.
               </p>

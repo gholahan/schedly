@@ -303,10 +303,10 @@ export function ChatSidebar({
           setIsSidebarOpen(false);
         }
       }}
-      className={`flex flex-col w-64 border-r border-[var(--color-border)] bg-[var(--color-sidebar)] transition-all duration-300 ease-in-out z-20 shrink-0 absolute md:relative h-full overflow-hidden ${
+      className={`flex flex-col w-64 border-r border-[var(--color-border)] bg-[var(--color-sidebar)] transition-all duration-300 ease-in-out z-50 md:z-20 shrink-0 fixed md:relative inset-y-0 left-0 md:inset-auto h-[100dvh] md:h-full overflow-hidden ${
         isSidebarOpen
-          ? 'translate-x-0 opacity-100 shadow-lg md:shadow-none'
-          : '-translate-x-full md:-ml-64 opacity-0 md:opacity-100'
+          ? 'translate-x-0 opacity-100 shadow-2xl md:shadow-none pointer-events-auto'
+          : '-translate-x-full md:-ml-64 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto'
       }`}
     >
       <div className="flex flex-col h-full w-64 overflow-hidden">
